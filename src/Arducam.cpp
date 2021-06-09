@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Arducam.hpp"
 
 bool ArducamCamera::openCamera(std::string fname, int index) {
@@ -28,6 +27,13 @@ void ArducamCamera::stop() {
 		this->captureThread.join();
 
 	captureSem.cleanup();
+}
+
+int ArducamCamera::setCtrl(std::string name, int64_t val) {
+	if (!this->_running)
+		return -1;
+
+	return ArduCam_setCtrl(handle, name.c_str(), val);
 }
 
 void ArducamCamera::capture() {

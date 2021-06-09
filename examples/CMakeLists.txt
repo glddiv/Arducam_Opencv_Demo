@@ -1,0 +1,2 @@
+add_subdirectory(test_i2c)
+add_subdirectory(test_i2c_detect)

@@ -34,6 +34,8 @@ public:
 	bool read(ArduCamOutData* &frameData);
 	void returnFrameBuffer();
 
+	int setCtrl(std::string name, int64_t val);
+
 private:
 	void capture();
 
@@ -41,7 +43,7 @@ private:
 	Semaphore captureSem;
 	std::thread captureThread;
 	ArduCamHandle handle = nullptr;
-	ArduCamCfg cameraCfg;
+	ArduCamCfg cameraCfg = {};
 	volatile bool _running = false;
 
 };

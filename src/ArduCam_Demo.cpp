@@ -1,6 +1,5 @@
 // ArduCam_test.cpp : Defines the entry point for the console application.
 //
-#include "stdafx.h"
 #ifdef linux
 #include "Arducam_SDK/ArduCamLib.h"
 #include <unistd.h>
@@ -56,8 +55,14 @@ void display(ArducamCamera *camera, int index) {
 			std::cout << "read frame failed." << std::endl;
 			continue;
 		}
+		// cv::Mat rawImage = UnpackRaw10(frameData, 2);
 		cv::Mat image = ConvertImage(frameData);
 		camera->returnFrameBuffer();
+
+        std::cout << "time: " << frameData->u64Time << std::endl;
+		// rawImage.convertTo(rawImage, CV_16UC1, 64);
+		// cv::Mat image;
+		// cv::cvtColor(rawImage, image, cv::COLOR_BayerGB2BGR);
 		if (!image.data) {
 			std::cout << "No image data" << std::endl;
 			continue;
@@ -84,7 +89,7 @@ void display(ArducamCamera *camera, int index) {
 }
 
 
-#define CAMERA1
+// #define CAMERA1
 int main(int argc,char **argv)
 {
 	const char * config_file_name;
@@ -112,6 +117,9 @@ int main(int argc,char **argv)
 #endif
 
 	camera->start();
+	camera->setCtrl("setFramerate", 30);
+	camera->setCtrl("setExposure", 1600);
+	camera->setCtrl("setGain", 0);
 	std::thread camera_display(display, camera, 0);
 
 #if defined(CAMERA1)

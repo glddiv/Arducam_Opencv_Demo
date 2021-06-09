@@ -1,9 +1,9 @@
-#include "stdafx.h"
-#include <Windows.h>
 #include "Utils.h"
 #include <time.h>
 #include "arducam_config_parser.h"
-#include "ArduCamlib.h"
+#include "ArduCamLib.h"
+#include <unistd.h>
+#include <stdlib.h>
 
 bool save_raw = false;
 int color_mode = 0;
@@ -83,7 +83,7 @@ bool camera_initFromFile(std::string filename, ArduCamHandle &cameraHandle, Ardu
 	}
 
 	int ret_val = ArduCam_open(cameraHandle, &cameraCfg, index);
-	//int ret_val = ArduCam_autoopen(cameraHandle, &cameraCfg);
+	// int ret_val = ArduCam_autoopen(cameraHandle, &cameraCfg);
 	if (ret_val == USB_CAMERA_NO_ERROR) {
 		//ArduCam_enableForceRead(cameraHandle);	//Force display image
 		for (int i = 0; i < configs_length; i++) {
@@ -107,6 +107,7 @@ bool camera_initFromFile(std::string filename, ArduCamHandle &cameraHandle, Ardu
 				break;
 			}
 		}
+		ArduCam_registerCtrls(cameraHandle, cam_cfgs.controls, cam_cfgs.controls_length);
 		unsigned char u8TmpData[16];
 		ArduCam_readUserData(cameraHandle, 0x400 - 16, 16, u8TmpData);
 		printf("Serial: %c%c%c%c-%c%c%c%c-%c%c%c%c\n",
@@ -223,6 +224,34 @@ cv::Mat BytestoMat(Uint8* bytes, int width, int height)
 {
 	cv::Mat image = cv::Mat(height, width, CV_8UC1, bytes);
 	return image;
+}
+
+cv::Mat UnpackRaw10(ArduCamOutData* frameData, int drop_row) {
+	Uint8* data = frameData->pu8ImageData;
+	ArduCamCfg cameraCfg = frameData->stImagePara;
+	int height, width;
+	width = cameraCfg.u32Width * 0.8;
+	height = cameraCfg.u32Height - abs(drop_row);
+	int stride = cameraCfg.u32Width;
+	cv::Mat rawImage = cv::Mat(height, width, CV_16UC1);
+	int index = 0;
+	int start = 0;
+	int end = cameraCfg.u32Width * cameraCfg.u32Height;
+
+	if (drop_row > 0) {
+		start = stride * drop_row;
+	} else if(drop_row < 0) {
+		end += stride * drop_row;
+	}
+
+	for (int i = start; i < end; i+=5) {
+		int lsb = data[i + 4];
+		rawImage.at<uint16_t>(index++) = (data[i + 0] << 2) | ((lsb >> 6) & 0x03);
+		rawImage.at<uint16_t>(index++) = (data[i + 1] << 2) | ((lsb >> 4) & 0x03);
+		rawImage.at<uint16_t>(index++) = (data[i + 2] << 2) | ((lsb >> 2) & 0x03);
+		rawImage.at<uint16_t>(index++) = (data[i + 3] << 2) | ((lsb >> 0) & 0x03);
+	}
+	return rawImage;
 }
 
 cv::Mat ConvertImage(ArduCamOutData* frameData) {

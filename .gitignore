@@ -2,3 +2,7 @@
 obj/
 bin/
 libs/
+.vscode/
+build/
+*.pyc
+__pycache__/
